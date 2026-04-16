@@ -1,7 +1,7 @@
 """ Implémentation du board de jeu suivant les constantes du sujet. """
 
 import random
-from snake.domain import Direction, Position
+from snake.domain import Direction, Position, Observation
 
 class BoardEnv:
     """ Constants imposed by the subject. """
@@ -79,3 +79,47 @@ class BoardEnv:
             0 <= pos.x < self.WIDTH and 
             0 <= pos.y < self.HEIGHT
         )
+
+    def get_observation(self) -> Observation:
+        head = self.snake[0]
+        body = set(self.snake[1:])
+
+        visions = {
+            Direction.UP: [],
+            Direction.LEFT: [],
+            Direction.DOWN: [],
+            Direction.RIGHT: [],
+        }
+
+        for direction in Direction:
+            curr = head
+
+            while True:
+                # Move one step in the current direction
+                curr = Position(
+                    curr.x + direction.dx,
+                    curr.y + direction.dy,
+                )
+                # Wall
+                if not self._is_inside(curr):
+                    visions[direction].append("W")
+                    break
+                # Snake body
+                if curr in body:
+                    visions[direction].append("S")
+                # Green apple
+                if curr in self.green_apples:
+                    visions[direction].append("G")
+                # Red apple
+                if curr in self.red_apple:
+                    visions[direction].append("R")
+                # Empty cell
+                else:
+                    visions[direction].append("0")
+            
+            return Observation(
+                up=visions[Direction.UP],
+                left=visions[Direction.LEFT],
+                down=visions[Direction.DOWN],
+                right=visions[Direction.RIGHT],
+            )
