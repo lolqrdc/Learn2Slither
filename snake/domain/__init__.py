@@ -1,1 +1,2 @@
-""" Sous package contenant les type partagés (Direction, position, etc). """
+from .types import Direction, Position
+from .observation import Observation
