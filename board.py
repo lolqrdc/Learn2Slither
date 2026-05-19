@@ -143,19 +143,3 @@ class Board:
                    for r, c in segments):
                 self.snake = deque(segments)
                 break
-
-
-if __name__ == "__main__":
-    board = Board()
-    board.reset()
-    print("Snake:", list(board.snake))
-    print("Length:", board.snake_length())
-    print("Green apples:", board.green_apples)
-    print("Red apples:", board.red_apples)
-    print("Direction:", board.direction)
-    assert board.snake_length() == 3
-    assert len(board.green_apples) == 2
-    assert len(board.red_apples) == 1
-    assert not board.is_game_over()
-    print("All checks passed.")
-
