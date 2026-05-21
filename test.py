@@ -3,7 +3,7 @@ from board import Board
 from interpreter import Interpreter
 from constants import Action, Event
 from collections import deque
-
+from agent import Agent
 
 class TestBoard(unittest.TestCase):
     """Test Board class functionality."""
@@ -109,6 +109,76 @@ class TestInterpreter(unittest.TestCase):
         self.assertIn("G", all_vision)
         self.assertIn("R", all_vision)
 
+class TestAgent(unittest.TestCase):
+    """Test Agent class functionality."""
+
+    def setUp(self):
+        self.agent = Agent(learning=True)
+
+    def test_agent_initialization(self):
+        """Test agent initializes with correct parameters."""
+        self.assertEqual(self.agent.alpha, 0.1)
+        self.assertEqual(self.agent.gamma, 0.99)
+        self.assertEqual(self.agent.epsilon, 1.0)
+        self.assertTrue(self.agent.learning)
+        self.assertEqual(len(self.agent.q_table), 0)
+
+    def test_choose_action_returns_valid_action(self):
+        """Test choose_action returns an Action enum."""
+        state = ((None, None), (None, None), (None, None), (None, None))
+        action = self.agent.choose_action(state)
+        self.assertIn(action, list(Action))
+
+    def test_epsilon_decay(self):
+        """Test epsilon decreases over multiple calls."""
+        state = ((None, None), (None, None), (None, None), (None, None))
+        initial_epsilon = self.agent.epsilon
+        for _ in range(100):
+            self.agent.choose_action(state)
+        self.assertLess(self.agent.epsilon, initial_epsilon)
+        self.assertGreaterEqual(self.agent.epsilon, self.agent.epsilon_min)
+
+    def test_update_creates_q_entry(self):
+        """Test update creates Q-table entry for new state."""
+        state = ((None, None), (None, None), (None, None), (None, None))
+        next_state = ((None, None), (None, None), (None, None), ("S",))
+        self.agent.update(state, Action.UP, 10, next_state)
+        self.assertIn(state, self.agent.q_table)
+        self.assertNotEqual(self.agent.q_table[state][Action.UP], 0.0)
+
+    def test_update_with_learning_disabled(self):
+        """Test update does nothing when learning is disabled."""
+        agent = Agent(learning=False)
+        state = ((None, None), (None, None), (None, None), (None, None))
+        agent.update(state, Action.UP, 10, state)
+        self.assertEqual(len(agent.q_table), 0)
+
+    def test_greedy_action_selection(self):
+        """Test agent selects best action when not exploring."""
+        agent = Agent(learning=False)
+        state = ((None, None), (None, None), (None, None), (None, None))
+        agent.q_table[state] = {Action.UP: 5.0, Action.DOWN: 2.0, 
+                                 Action.LEFT: 1.0, Action.RIGHT: 0.0}
+        action = agent.choose_action(state)
+        self.assertEqual(action, Action.UP)
+
+    def test_save_and_load_q_table(self, tmp_path=None):
+        """Test Q-table can be saved and loaded."""
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
+            filepath = f.name
+        try:
+            state = ((None, None), (None, None), (None, None), (None, None))
+            self.agent.update(state, Action.UP, 10, state)
+            self.agent.save(filepath)
+            
+            agent2 = Agent(learning=False)
+            agent2.load(filepath)
+            self.assertEqual(agent2.q_table[state][Action.UP], 
+                           self.agent.q_table[state][Action.UP])
+        finally:
+            import os
+            os.remove(filepath)
 
 if __name__ == "__main__":
     unittest.main()
